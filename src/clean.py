@@ -91,12 +91,22 @@ def clean():
     # ---- 步骤 2: 缺失值处理 ----
     lines.append("")
     lines.append(f"[步骤2] 缺失值处理")
+
+    # 2a. 伪零分修正（关键）
+    # 评分 = 0 且评论数 = 0 的记录，并非"评价很差"，而是"从未被评价"，
+    # 被平台伪编码成了 0。必须置为缺失后再按城市均值填补，否则会
+    # 严重拉低城市均分、污染"价格-口碑关系"等所有下游结论。
+    pseudo_zero = df[(df["rating"] == 0) & (df["comment_count"] == 0)]
+    n_pseudo = len(pseudo_zero)
+    df.loc[(df["rating"] == 0) & (df["comment_count"] == 0), "rating"] = None
+    lines.append(f"  伪零分修正(评分=0且评论=0 → 置为缺失): {n_pseudo} 条")
+
     n_missing = df["rating"].isna().sum()
     df["rating"] = df.groupby("city")["rating"].transform(lambda x: x.fillna(x.mean()))
     df["rating"] = df["rating"].fillna(df["rating"].mean())
     df["comment_count"] = df["comment_count"].fillna(0).astype(int)
     df["price"] = pd.to_numeric(df["price"], errors="coerce").fillna(0)
-    lines.append(f"  评分缺失修复: {n_missing} 条")
+    lines.append(f"  评分缺失修复(按城市均值填补): {n_missing} 条")
 
     # ---- 步骤 3: 去重 ----
     before = len(df)
