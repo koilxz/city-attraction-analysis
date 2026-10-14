@@ -8,7 +8,7 @@
 > 用 Python 采集去哪儿网 10 个热门旅游城市的景点数据，回答：
 > **哪个城市的景点口碑最稳？热度高的景点评价一定更好吗？**
 
-**技术栈**：Python · requests · pandas · matplotlib / seaborn · jieba · WordCloud · folium
+**技术栈**：Python · requests · pandas · scipy · matplotlib / seaborn · jieba · WordCloud · folium
 **分析产物**：12 张静态图表 + 1 个交互式地图（HTML）
 **数据规模**：原始 **499** 条 → 清洗后 **151 个景点**（剔除 348 条，保留率 30.3%）
 
@@ -154,10 +154,11 @@
 ## 三、两个关键发现
 
 > 以下统计均基于清洗后的 **151 条**数据。评分与评论数字段经审计为**真实可信**。
+> **本节全部数字由 [`src/stats.py`](src/stats.py) 计算并断言自检，跑 `python src/stats.py` 可一键复现。**
 
 ### 发现 1：热度高 ≠ 评价好
 
-- 评论数与评分的相关系数 **r = 0.101**（Spearman ρ = 0.078，**p = 0.340，不显著**）
+- 评论数与评分的相关系数 **Pearson r = 0.101**（p = 0.218）、**Spearman ρ = 0.078**（p = 0.340），**两者均不显著**
 - 高热度组（Top 20%，n=31）均分 **4.671**，低热度组（Bottom 20%，n=46）均分 **4.646**，**p = 0.630，不显著**
 
 > **结论**：评论多的景点评分并不明显更高。热度反映的是"知名度"，而非"满意度"——
@@ -197,10 +198,11 @@
 ```bash
 pip install -r requirements.txt
 python src/clean.py        # 第 1 步：清洗（字段审计 + 去重 + 定位校验）
-python src/visualize.py    # 第 2 步：基于清洗结果生成图表
+python src/stats.py        # 第 2 步：统计（生成第三节关键数字，含自检）
+python src/visualize.py    # 第 3 步：基于清洗结果生成图表
 ```
 
-> 职责分离：`clean.py` 只做清洗，`visualize.py` 只读清洗后数据作图。
+> 职责分离：`clean.py` 只做清洗，`stats.py` 只做统计，`visualize.py` 只读清洗后数据作图。
 > 改清洗规则不影响绘图逻辑，改图也不必重跑爬虫。
 > （如需重新采集：`python src/spider_real.py`，见脚本内「已知数据局限」说明。）
 
@@ -282,6 +284,7 @@ city-attraction-analysis/
 │   ├── spider_real.py  # 数据采集（列表页 + 详情页 + 评论 API）
 │   ├── foreign_map.py  # ⭐ 景点真实归属核验表（128 条，人工核验）
 │   ├── clean.py        # 数据清洗（字段审计 + 跨城市去重 + 归属核验）
+│   ├── stats.py        # ⭐ 统计分析（README 关键发现的数字来源，含自检）
 │   └── visualize.py    # 可视化（读清洗后数据出图）
 ├── docs/
 │   └── 数据质量诊断笔记.md   # 完整审计过程
