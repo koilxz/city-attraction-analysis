@@ -24,8 +24,13 @@ clean.py — 数据清洗与质量修复（v2）
 """
 import os
 import re
+import sys
+
 import pandas as pd
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from foreign_map import FOREIGN, true_city  # noqa: E402
 
 RAW = "data/raw/scenic_spots_raw.xlsx"
 OUT = "data/processed/scenic_spots_clean.xlsx"
@@ -158,6 +163,10 @@ def name_other_place(name, own):
 
 def is_foreign(r):
     """该记录是否「明显不属于」其标注城市（强信号）"""
+    # 信号 0（最强）：景点全名命中「真实归属核验表」
+    tc = true_city(r["name"])
+    if tc and tc[0] != r["city"]:
+        return True
     if has(r["_landmark"]) and r["_landmark"] != r["city"]:
         return True
     if has(r["_name_other"]):
@@ -275,6 +284,9 @@ def clean():
     # ---------- 步骤 4：单条记录的定位冲突 ----------
     def why_foreign(r):
         """给出「判为外地」的具体理由（用于报告）"""
+        tc = true_city(r["name"])
+        if tc and tc[0] != r["city"]:
+            return f"核验表：实属{tc[1]}{tc[0]}"
         if has(r["_landmark"]) and r["_landmark"] != r["city"]:
             return f"地标归属冲突({r['_landmark']})"
         if has(r["_name_other"]):
@@ -305,10 +317,30 @@ def clean():
         r = df.loc[i]
         log(f"    [{r['city']}] {str(r['name'])[:26]:<28} ← {reasons[i]}")
 
+    # ---------- 步骤 4b：人工核验表覆盖校验 ----------
+    from collections import Counter
+
+    all_names = set(df["name"].astype(str))
+    unmapped = [k for k in FOREIGN if k not in all_names]
+    map_dropped = [i for i in drop_idx if str(df.loc[i, "name"]) in FOREIGN]
+
+    log("")
+    log("[步骤4b] 「真实归属核验表」覆盖校验")
+    log(f"  核验表条目       : {len(FOREIGN)} 条")
+    log(f"  命中原始数据     : {len(FOREIGN) - len(unmapped)} 条")
+    log(f"  未命中(疑似笔误) : {len(unmapped)} 条")
+    for k in unmapped[:20]:
+        log(f"      ⚠️ 未匹配：{k}")
+    log(f"  据此剔除记录     : {len(map_dropped)} 条")
+    cnt = Counter(df.loc[i, "city"] for i in map_dropped)
+    log("  分城市剔除：")
+    for c in CITIES:
+        if cnt.get(c):
+            log(f"      {c}: -{cnt[c]}")
+
     cleaned = df.drop(index=set(drop_idx)).copy()
     log("")
     log(f"  合计剔除: {len(drop_idx)} 条   剩余: {len(cleaned)} 条")
-
     # ---------- 步骤 5：删除伪造字段 ----------
     fake_cols = [c for c in ["latitude", "longitude", "distance"] if c in cleaned.columns]
     cleaned = cleaned.drop(columns=fake_cols)
