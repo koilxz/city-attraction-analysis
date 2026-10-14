@@ -197,7 +197,7 @@ def fig13():
     print("  ✓ 13_tag_stacked.png")
 
 
-# ---------- 图 11：地理分布 ----------
+# ---------- 图 11：各城市口碑（气泡 = 景点数） ----------
 def fig11():
     fig, ax = plt.subplots(figsize=(9, 6))
     c = df.groupby("city")["rating"].mean().sort_values(ascending=False)
@@ -211,7 +211,7 @@ def fig11():
         ax.annotate(f"{v:.2f}", (i, v), textcoords="offset points",
                     xytext=(0, 12), ha="center", fontsize=9)
     ax.set_ylabel("平均评分", fontsize=11)
-    ax.set_title("各城市口碑分布（气泡大小 = 景点数）", fontsize=14,
+    ax.set_title("各城市口碑对比（气泡大小 = 景点数）", fontsize=14,
                  fontweight="bold", pad=15)
     plt.colorbar(scatter, ax=ax, label="平均评分")
     ax.grid(alpha=0.3, linestyle="--")
@@ -304,12 +304,24 @@ def fig09():
     print("  ✓ 09_wordcloud.png")
 
 
-# ---------- 图 10：景点地理分布地图 ----------
-def fig10():
-    """用 folium 生成交互式地图（HTML）。
+# ---------- 图 10：城市级交互式地图 ----------
+# ⚠️ 关于坐标：原始采集未获得景点真实经纬度（spider_real.py 里是随机生成后删除的），
+#    因此这里【不做景点级打点】，改为【城市级聚合】—— 城市中心坐标是真实可靠的，
+#    且按城市聚合后的统计量（景点数 / 均分 / 平均评论数）本身就有意义。
+CITY_CENTER = {
+    "北京": (39.9042, 116.4074), "上海": (31.2304, 121.4737),
+    "重庆": (29.5630, 106.5516), "武汉": (30.5928, 114.3055),
+    "成都": (30.5728, 104.0668), "西安": (34.3416, 108.9398),
+    "青岛": (36.0671, 120.3826), "杭州": (30.2741, 120.1551),
+    "济南": (36.6512, 117.1201), "南京": (32.0603, 118.7969),
+}
 
-    ⚠️ folium 输出的是 HTML，不是 PNG —— 它是本项目唯一的**交互式**产物，
-       鼠标可缩放、点击看点名。
+
+def fig10():
+    """用 folium 生成**城市级**交互式地图（HTML）。
+
+    ⚠️ 这是本项目唯一的**交互式**产物：鼠标可缩放、点击看城市汇总。
+    注：不做景点级打点，因为景点真实经纬度不可得（见 README 局限性）。
     """
     try:
         import folium
@@ -317,44 +329,44 @@ def fig10():
         print("  · 跳过 10（需要 folium）")
         return
 
-    geo = df.dropna(subset=["latitude", "longitude"])
-    if len(geo) == 0:
-        print("  · 跳过 10（无经纬度数据）")
+    g = df.groupby("city").agg(
+        景点数=("name", "size"),
+        均分=("rating", "mean"),
+        平均评论=("comment_count", "mean"),
+    )
+    g = g[g.index.isin(CITY_CENTER)]
+    if len(g) == 0:
+        print("  · 跳过 10（无城市数据）")
         return
 
-    m = folium.Map(location=[float(geo["latitude"].mean()),
-                             float(geo["longitude"].mean())],
-                   zoom_start=5, tiles="OpenStreetMap")
+    m = folium.Map(location=[32.0, 114.0], zoom_start=5, tiles="OpenStreetMap")
 
-    # 按城市配色
-    palette = sns.color_palette("Set2", geo["city"].nunique()).as_hex()
-    city_color = {c: palette[i % len(palette)]
-                  for i, c in enumerate(sorted(geo["city"].unique()))}
-
-    for _, row in geo.iterrows():
-        try:
-            lat, lon = float(row["latitude"]), float(row["longitude"])
-        except (TypeError, ValueError):
-            continue
-        color = city_color.get(row["city"], "#3388ff")
-        popup = (f"<b>{row['name']}</b><br>"
-                 f"城市：{row['city']}<br>"
-                 f"评分：{row['rating']:.2f}<br>"
-                 f"评论数：{int(row['comment_count'])}<br>"
-                 f"门票：{row['price']:.0f} 元")
+    vmax = g["景点数"].max()
+    for city, row in g.iterrows():
+        lat, lon = CITY_CENTER[city]
+        radius = 8 + 18 * (row["景点数"] / vmax)
+        popup = (f"<b>{city}</b><br>"
+                 f"景点数：{int(row['景点数'])}<br>"
+                 f"平均评分：{row['均分']:.2f}<br>"
+                 f"平均评论数：{int(row['平均评论'])}")
         folium.CircleMarker(
             location=[lat, lon],
-            radius=5,
-            color=color,
+            radius=radius,
+            color="#2E4057",
             fill=True,
-            fill_color=color,
-            fill_opacity=0.7,
-            popup=folium.Popup(popup, max_width=260),
-            tooltip=f"{row['city']} · {row['name'][:20]}",
-        ).add_to(m)
+            fill_color="#E8871E",
+            fill_opacity=0.65,
+            popup=folium.Popup(popup, max_width=240),
+            tooltip=f"{city} · {int(row['景点数'])} 个景点",
+        ).add_to(m).add_child(
+            folium.Marker([lat, lon], icon=folium.DivIcon(
+                html=f'<div style="font-size:12px;font-weight:bold;'
+                     f'color:#2E4057;white-space:nowrap">{city}</div>',
+                icon_size=(40, 14), icon_anchor=(20, 26))))
 
+    folium.LayerControl().add_to(m)
     m.save(f"{OUT}/scenic_map.html")
-    print("  ✓ scenic_map.html（交互式地图）")
+    print("  ✓ scenic_map.html（城市级交互式地图）")
 
 
 if __name__ == "__main__":
