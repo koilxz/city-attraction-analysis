@@ -240,9 +240,126 @@ def fig12():
     print("  ✓ 12_sentiment_analysis.png")
 
 
+# ---------- 图 09：景点简介高频词 ----------
+def fig09():
+    """把 description 分词后画词云。
+
+    ⚠️ 注意：这不是"用户评论"的词云，而是**景点简介**的词云
+    （原始数据里没有留存可供统计的评论文本，评论在采集时只取了数量）。
+    图上已标注清楚，避免误读。
+    """
+    try:
+        import jieba
+        from wordcloud import WordCloud
+    except ImportError:
+        print("  · 跳过 09（需要 jieba + wordcloud）")
+        return
+
+    texts = df["description"].dropna().astype(str)
+    if len(texts) == 0:
+        print("  · 跳过 09（无 description 数据）")
+        return
+
+    # 收集全文
+    corpus = " ".join(texts)
+
+    # 高频词挑出来做停用词（这些词没信息量）
+    stopwords = {
+        "景区", "景点", "公园", "旅游", "位于", "公里", "面积", "中国", "国家",
+        "一个", "这里", "可以", "以及", "是", "的", "了", "和", "与", "在",
+        "有", "为", "是", "等", "被", "而", "或", "从", "到", "对", "也",
+        "这个", "其中", "主要", "由于", "通过", "进行", "具有", "成为",
+    }
+    words = [w for w in jieba.cut(corpus)
+             if len(w) >= 2 and w not in stopwords and not w.isdigit()]
+
+    if not words:
+        print("  · 跳过 09（分词后无有效词）")
+        return
+
+    from collections import Counter
+    freq = Counter(words)
+
+    # 中文字体路径
+    font_path = "C:/Windows/Fonts/msyh.ttc"
+
+    wc = WordCloud(
+        font_path=font_path,
+        width=1200, height=700,
+        background_color="white",
+        max_words=120,
+        colormap="viridis",
+        prefer_horizontal=0.92,
+    ).generate_from_frequencies(freq)
+
+    fig, ax = plt.subplots(figsize=(11, 6.5))
+    ax.imshow(wc, interpolation="bilinear")
+    ax.axis("off")
+    ax.set_title("景点简介高频词（Top 120）", fontsize=14,
+                 fontweight="bold", pad=15)
+    ax.text(0.99, -0.02, "注：统计对象为「景点简介」文本，非用户评论",
+            transform=ax.transAxes, ha="right", fontsize=8.5, color="#888")
+    plt.savefig(f"{OUT}/09_wordcloud.png")
+    plt.close()
+    print("  ✓ 09_wordcloud.png")
+
+
+# ---------- 图 10：景点地理分布地图 ----------
+def fig10():
+    """用 folium 生成交互式地图（HTML）。
+
+    ⚠️ folium 输出的是 HTML，不是 PNG —— 它是本项目唯一的**交互式**产物，
+       鼠标可缩放、点击看点名。
+    """
+    try:
+        import folium
+    except ImportError:
+        print("  · 跳过 10（需要 folium）")
+        return
+
+    geo = df.dropna(subset=["latitude", "longitude"])
+    if len(geo) == 0:
+        print("  · 跳过 10（无经纬度数据）")
+        return
+
+    m = folium.Map(location=[float(geo["latitude"].mean()),
+                             float(geo["longitude"].mean())],
+                   zoom_start=5, tiles="OpenStreetMap")
+
+    # 按城市配色
+    palette = sns.color_palette("Set2", geo["city"].nunique()).as_hex()
+    city_color = {c: palette[i % len(palette)]
+                  for i, c in enumerate(sorted(geo["city"].unique()))}
+
+    for _, row in geo.iterrows():
+        try:
+            lat, lon = float(row["latitude"]), float(row["longitude"])
+        except (TypeError, ValueError):
+            continue
+        color = city_color.get(row["city"], "#3388ff")
+        popup = (f"<b>{row['name']}</b><br>"
+                 f"城市：{row['city']}<br>"
+                 f"评分：{row['rating']:.2f}<br>"
+                 f"评论数：{int(row['comment_count'])}<br>"
+                 f"门票：{row['price']:.0f} 元")
+        folium.CircleMarker(
+            location=[lat, lon],
+            radius=5,
+            color=color,
+            fill=True,
+            fill_color=color,
+            fill_opacity=0.7,
+            popup=folium.Popup(popup, max_width=260),
+            tooltip=f"{row['city']} · {row['name'][:20]}",
+        ).add_to(m)
+
+    m.save(f"{OUT}/scenic_map.html")
+    print("  ✓ scenic_map.html（交互式地图）")
+
+
 if __name__ == "__main__":
     print("\n开始生成图表...")
     for fn in [fig01, fig02, fig03, fig04, fig05, fig06,
-               fig07, fig08, fig11, fig12, fig13]:
+               fig07, fig08, fig09, fig10, fig11, fig12, fig13]:
         fn()
     print("\n✅ 全部图表生成完成")

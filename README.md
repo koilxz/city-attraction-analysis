@@ -160,6 +160,46 @@ python src/visualize.py    # 第 2 步：基于清洗结果生成图表
 
 ---
 
+## 📊 分析结果（部分图表）
+
+> 完整图表见 [`results/figures/`](results/figures/)。**交互式地图**：[`scenic_map.html`](results/figures/scenic_map.html)
+
+### 各城市景点分布
+
+![各城市景点数量](results/figures/01_city_spot_count.png)
+
+### 门票价格 vs 口碑评分
+
+![价格与评分](results/figures/04_price_rating_scatter.png)
+
+> 相关系数 r ≈ **−0.16**，说明"越贵越好"在本数据中**不成立**。
+
+### 评论数最高的 15 个景点
+
+![Top15](results/figures/02_top15_comments.png)
+
+### 城市 × 景点类型 分布
+
+![热力图](results/figures/06_city_tag_heatmap.png)
+
+<details>
+<summary><b>展开查看其余图表</b></summary>
+
+| 图表 | 说明 |
+|---|---|
+| ![](results/figures/03_rating_boxplot.png) | 各城市评分分布（箱线图） |
+| ![](results/figures/05_tag_pie.png) | 景点类型占比 |
+| ![](results/figures/07_price_rating_violin.png) | 不同价格区间的评分分布 |
+| ![](results/figures/08_rating_segment_stacked.png) | 各城市高评分景点占比 |
+| ![](results/figures/09_wordcloud.png) | 景点简介高频词 |
+| ![](results/figures/11_geo_distribution.png) | 各城市口碑分布 |
+| ![](results/figures/12_sentiment_analysis.png) | 评分区间分布 |
+| ![](results/figures/13_tag_stacked.png) | 各城市价格区间构成 |
+
+</details>
+
+---
+
 ## 项目结构
 
 ```
@@ -173,7 +213,7 @@ city-attraction-analysis/
 │   ├── clean.py        # 数据清洗（跨城市污染检测 + 伪零分修正）
 │   └── visualize.py    # 可视化（读清洗后数据出图）
 └── results/
-    └── figures/        # 11 张图表
+    └── figures/        # 12 张图表 + 1 个交互式地图（HTML）
 ```
 
 ---
