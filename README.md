@@ -1,7 +1,16 @@
 # 10 个热门旅游城市：景点口碑的真实规律
 
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
+![pandas](https://img.shields.io/badge/pandas-数据分析-150458?logo=pandas&logoColor=white)
+![matplotlib](https://img.shields.io/badge/matplotlib-可视化-11557C)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 > 用 Python 爬取去哪儿网 **455 个真实景点**数据，回答一个具体问题：
 > **门票越贵，景点就越值得去吗？**
+
+**技术栈**：Python · requests · pandas · matplotlib / seaborn · jieba · WordCloud · folium
+**分析产物**：12 张静态图表 + 1 个交互式地图（HTML）
+**数据规模**：原始 499 条 → 清洗后 **455 个景点**（剔除 8.8% 跨城市污染数据）
 
 📝 **技术复盘文章（CSDN）**：[一次景点数据爬取复盘：从 499 条到 455 条，我剔掉的 8.8% 脏数据](https://blog.csdn.net/2401_86734821/article/details/167659876)
 
