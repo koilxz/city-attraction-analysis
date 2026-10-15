@@ -1,0 +1,37 @@
+============================================================
+清洗前后对比 · 数字来源（由 make_clean_comparison.py 生成）
+============================================================
+原始数据          : D:\桌面\文件夹\2026作业\city-attraction-analysis\data\raw\scenic_spots_raw.xlsx
+清洗后数据        : D:\桌面\文件夹\2026作业\city-attraction-analysis\data\processed\scenic_spots_clean.xlsx
+
+清洗前总条数      : 499
+清洗后总条数      : 151
+合计剔除          : 348 条
+保留率            : 30.3%
+污染率            : 69.7%
+
+剔除原因构成（与 clean.py 运行日志一致）：
+  [步骤3]跨城市重复抓取(sight_id)        : 167 条
+  [步骤4] 归属地冲突(地标+人工核验表)    : 181 条
+  合计                                  : 348 条
+
+各城市清洗前后：
+城市           清洗前     清洗后       保留率
+西安            50      18       36%
+杭州            50      17       34%
+重庆            50      16       32%
+南京            49      16       33%
+济南            50      16       32%
+上海            50      15       30%
+武汉            50      15       30%
+北京            50      14       28%
+成都            50      13       26%
+青岛            50      11       22%
+
+评分分布（不含 rating=0 的伪零分）：
+  清洗前均值: 4.5396  (n=467)
+  清洗后均值: 4.5496  (n=151)
+  差异      : 0.0100
+
+图1: D:\桌面\文件夹\2026作业\city-attraction-analysis\results\figures\14_clean_before_after.png
+图2: D:\桌面\文件夹\2026作业\city-attraction-analysis\results\figures\15_rating_dist_before_after.png
